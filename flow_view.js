@@ -1,11 +1,22 @@
 "use strict";
 
 function gen_key_str(flow, flow_index) {
-    if(flow.key) {
-        return "key_" + flow.key.replace(/:/g, "");
+    if (flow.key) {
+        return flow.key;
     } else {
         return "key_" + flow_index;
     }
+}
+
+function list_ports(sw_flows) {
+    return sw_flows
+        .map(function(e) {
+            return e.in_port;
+        })
+        .filter(function(port, i, self) { // uniq
+            return self.indexOf(port) === i;
+        })
+        .sort(function(a, b) { return a - b; }); // compare numeric
 }
 
 function add_flow_edge_to(port_table, type, port, flow) {
@@ -21,20 +32,39 @@ function add_flow_edge_to(port_table, type, port, flow) {
     return flow_edge;
 }
 
-function gen_per_port_flow_edges(ssw_flows) {
+function gen_per_port_flow_edges(sw_flows) {
     var port_table = {};
-    ssw_flows.forEach(function(flow, flow_index) {
-        // generate and add edge
+    sw_flows.forEach(function(flow, flow_index) {
         var src_edge = add_flow_edge_to(
             port_table, "src", flow.in_port, flow);
-        var dst_edge = add_flow_edge_to(
-            port_table, "dst", flow.actions.output, flow);
+
+        var dst_edges = [];
+        if(flow.actions.output === "FLOOD") {
+            // multiple destination
+            var flooded_ports = list_ports(sw_flows).filter(
+                function(d){ return d !== flow.in_port; }
+            );
+            flooded_ports.forEach(function(dst_port) {
+                dst_edges.push(add_flow_edge_to(
+                    port_table, "dst", dst_port, flow
+                ));
+            })
+        } else {
+            // single destination
+            dst_edges.push(add_flow_edge_to(
+                port_table, "dst", flow.actions.output, flow));
+        }
+
         // link counter-part edge for each other
-        src_edge["pair_edge"] = dst_edge;
-        dst_edge["pair_edge"] = src_edge;
+        src_edge["pair_edges"] = dst_edges;
+        dst_edges.forEach(function(dst_edge) {
+            dst_edge["pair_edges"] = [ src_edge ];
+        });
         // add key of edge
         src_edge["key"] = gen_key_str(src_edge.flow, flow_index);
-        dst_edge["key"] = gen_key_str(dst_edge.flow, flow_index);
+        dst_edges.forEach(function(dst_edge) {
+            dst_edge["key"] = gen_key_str(dst_edge.flow, flow_index);
+        });
     });
     return port_table;
 }
@@ -104,7 +134,7 @@ function draw_flow_edges(target_switch, svg, flow_edges) {
         .append("title")
         .text(function(d) {
             return "ID:" + d.serial_num
-                + ", Pair ID:" + d.pair_edge.serial_num
+                // + ", Pair ID:" + d.pair_edge.serial_num
                 + ", Flow:" + d.flow.rule_str;
         });
 }
@@ -118,16 +148,18 @@ function draw_paths(target_switch, svg, flow_edges) {
     flow_edges.forEach(function(flow_edge) {
         if(flow_edge.type === "src") {
             var src_edge = flow_edge;
-            var dst_edge = flow_edge.pair_edge;
-            var mid_edge = {
-                // position of x-axis
-                "serial_num" : (src_edge.serial_num + dst_edge.serial_num) /2.0
-            };
-            svg.append("path")
-                .attrs({
-                    "class": [target_switch, src_edge.key].join(" "),
-                    "d": line([src_edge, mid_edge, dst_edge])
-                });
+            var dst_edges = flow_edge.pair_edges;
+            dst_edges.forEach(function(dst_edge){
+                var mid_edge = {
+                    // position of x-axis
+                    "serial_num" : (src_edge.serial_num + dst_edge.serial_num) /2.0
+                };
+                svg.append("path")
+                    .attrs({
+                        "class": [target_switch, src_edge.key].join(" "),
+                        "d": line([src_edge, mid_edge, dst_edge])
+                    });
+            });
         }
     });
 }
@@ -185,7 +217,7 @@ function draw_ports(target_switch, svg, per_port_flow_edge) {
 function draw_flow_tables(ssw_flows, psw_flows) {
     console.log("## draw_flow_tables");
 
-    var height = 500, width = 1500; // svg canvas size
+    var height = 500, width = 2000; // svg canvas size
     var svg = d3.select("body")
         .select("div#flow_view")
         .append("svg")
@@ -194,24 +226,24 @@ function draw_flow_tables(ssw_flows, psw_flows) {
             "height": height}
         );
 
-    // ssw
-    pos_y = ssw_pos_y;
-    console.log(pos_y);
+    // ssw data
     var ssw_per_port_flow_edges = gen_per_port_flow_edges(ssw_flows);
     var ssw_flow_edges = serialize_per_port_flow_edges(ssw_per_port_flow_edges);
-    console.log(ssw_flow_edges);
+    // console.log(ssw_flow_edges);
 
+    // psw data
+    var psw_per_port_flow_edges = gen_per_port_flow_edges(psw_flows);
+    var psw_flow_edges = serialize_per_port_flow_edges(psw_per_port_flow_edges);
+    // console.log(psw_flow_edges);
+
+    // draw ssw
+    pos_y = ssw_pos_y;
     draw_ports("ssw", svg, ssw_per_port_flow_edges);
     draw_flow_edges("ssw", svg, ssw_flow_edges);
     draw_paths("ssw", svg, ssw_flow_edges);
 
-    // psw
+    // draw psw
     pos_y = psw_pos_y;
-    console.log(pos_y);
-    var psw_per_port_flow_edges = gen_per_port_flow_edges(psw_flows);
-    var psw_flow_edges = serialize_per_port_flow_edges(psw_per_port_flow_edges);
-    console.log(psw_flow_edges);
-
     draw_ports("psw", svg, psw_per_port_flow_edges);
     draw_flow_edges("psw", svg, psw_flow_edges);
     draw_paths("psw", svg, psw_flow_edges);

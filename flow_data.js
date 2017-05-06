@@ -46,9 +46,9 @@ function build_flowdata(flow_table_textarea) {
         mac_values.forEach(function (svalue) {
             var re = new RegExp(svalue + "=(\\S+)");
             var result = line.match(re);
+            // set svg item class key by mac_address
             if(result) {
-                // data[svalue] = result[1];
-                data.key = result[1]
+                data.key = "key_" + result[1].replace(/:/g, "");
             }
         });
 
@@ -56,6 +56,13 @@ function build_flowdata(flow_table_textarea) {
         if(result) {
             data.actions = build_actions_data(result[1]);
         }
+
+        // overwrite key when action:FLOOD
+        if(data.actions.output === "FLOOD") {
+            var vlan_key = data.dl_vlan? data.dl_vlan : "";
+            data.key = ["key", "FLOOD", vlan_key].join("_");
+        }
+
         // console.log(line_data);
 
         return data;
