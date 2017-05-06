@@ -6,10 +6,10 @@ rect {
     opacity: 0.5;
 }
 rect.even {
-    fill: wheat;
+    fill: tan;
 }
 rect.odd {
-    fill: goldenrod;
+    fill: whitesmoke;
 }
 circle {
     stroke-width: 4;
@@ -29,7 +29,10 @@ circle.dst.targeted {
 }
 path {
     fill: none;
-    stroke-width: 4;
-    stroke: blue;
+    stroke-width: 2;
+    stroke: darkolivegreen;
     opacity: 0.5;
+}
+text {
+    font-size: small;
 }

@@ -84,29 +84,36 @@ function serialize_per_port_flow_edges(per_port_flow_edges) {
 }
 
 var radius = 15;
+var scale;
+function set_scale(dom_x_max, range_x_max) {
+    var padding = 0;
+    scale = d3.scaleLinear()
+        .domain( [0, dom_x_max] )
+        .range( [padding, range_x_max-padding] );
+}
 
 function pos_x(d) {
-    return d.serial_num * 2 * radius;
+    return scale(d.serial_num * 2 * radius);
 }
 
 var pos_y; // function alias
 function ssw_pos_y(d) {
-    return 3 * radius;
+    return scale(5 * radius);
 }
 function psw_pos_y(d) {
-    return 18 * radius;
+    return scale(20 * radius);
 }
 
 function pos_y_path_mid(d,i) {
-    return pos_y(d) + (i%2 === 0 ? radius : 15 * radius);
+    return pos_y(d) + scale(i%2 === 0 ? radius : 15 * radius);
 }
 
 function pos_x_port_rect(d) {
-    return pos_x(d) - radius;
+    return pos_x(d) - scale(radius);
 }
 
 function pos_y_port_rect(d) {
-    return pos_y(d) - 2 * radius;
+    return pos_y(d) - scale(2 * radius);
 }
 
 function draw_flow_edges(target_switch, svg, flow_edges) {
@@ -127,7 +134,7 @@ function draw_flow_edges(target_switch, svg, flow_edges) {
             },
             "cx" : pos_x,
             "cy" : pos_y,
-            "r" : radius
+            "r" : scale(radius)
         })
         .on("mouseover", function() { mouseivent(this, true) })
         .on("mouseout", function() { mouseivent(this, false)})
@@ -188,9 +195,9 @@ function draw_ports(target_switch, svg, per_port_flow_edge) {
             "x" : pos_x_port_rect,
             "y" : pos_y_port_rect,
             "width" : function(d) {
-                return d.size * radius * 2;
+                return scale(d.size * radius * 2);
             },
-            "height" : radius * 3
+            "height" : scale(radius * 3)
         })
         .on("mouseover", function() {
             d3.select(this).classed("targeted", true);
@@ -217,7 +224,7 @@ function draw_ports(target_switch, svg, per_port_flow_edge) {
 function draw_flow_tables(ssw_flows, psw_flows) {
     console.log("## draw_flow_tables");
 
-    var height = 500, width = 2000; // svg canvas size
+    var height = 500, width = 800; // svg canvas size
     var svg = d3.select("body")
         .select("div#flow_view")
         .append("svg")
@@ -235,6 +242,9 @@ function draw_flow_tables(ssw_flows, psw_flows) {
     var psw_per_port_flow_edges = gen_per_port_flow_edges(psw_flows);
     var psw_flow_edges = serialize_per_port_flow_edges(psw_per_port_flow_edges);
     // console.log(psw_flow_edges);
+
+    var edges_max = Math.max(ssw_flow_edges.length, psw_flow_edges.length);
+    set_scale( (edges_max+1) * 2 * radius, width);
 
     // draw ssw
     pos_y = ssw_pos_y;
