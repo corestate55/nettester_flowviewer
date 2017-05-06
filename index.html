@@ -14,7 +14,7 @@
 
 <form name="flow_tables">
     <p>SSW Flow-table: OVS (0xdad1c001)</p>
-    <textarea name="ssw_table" cols="100" rows="10">
+    <textarea name="ssw" cols="100" rows="10">
 NXST_FLOW reply (xid=0x4):
  cookie=0x0, duration=177.909s, table=0, n_packets=4, n_bytes=370, idle_age=72, priority=0,in_port=1,dl_vlan=2025,dl_dst=00:ba:dc:ab:1e:01 actions=strip_vlan,output:2
  cookie=0x0, duration=177.181s, table=0, n_packets=4, n_bytes=370, idle_age=70, priority=0,in_port=1,dl_vlan=2025,dl_dst=00:ba:dc:ab:1e:02 actions=strip_vlan,output:3
@@ -38,7 +38,7 @@ NXST_FLOW reply (xid=0x4):
     </textarea>
 
     <p>PSW Flow-table: OFS</p>
-    <textarea name="psw_table" cols="100" rows="10">
+    <textarea name="psw" cols="100" rows="10">
 NXST_FLOW reply (xid=0x4):
  cookie=0x0, duration=206.174s, table=0, n_packets=n/a, n_bytes=6489, idle_age=0, priority=0,in_port=7 actions=output:1
  cookie=0x0, duration=803.871s, table=0, n_packets=n/a, n_bytes=77622, idle_age=0, in_port=15 actions=output:14
@@ -67,13 +67,10 @@ NXST_FLOW reply (xid=0x4):
 <script src="./flow_data.js"></script>
 <script src="./flow_view.js"></script>
 <script type="text/javascript">
-    // console.log(document.flow_tables.ssw_table);
-    ssw_flows = build_flowdata(document.flow_tables.ssw_table);
-    psw_flows = build_flowdata(document.flow_tables.psw_table);
-    // console.log(ssw_flows);
-    // console.log(psw_flows);
-
-    draw_flow_tables(ssw_flows, psw_flows);
+    build_flowdata(
+        document.flow_tables.ssw,
+        document.flow_tables.psw);
+    // draw_flow_tables(ssw_flows, psw_flows);
 </script>
 
 </body>
