@@ -1,0 +1,35 @@
+.targeted {
+    stroke-width: 4;
+    stroke: red;
+}
+rect {
+    opacity: 0.5;
+}
+rect.even {
+    fill: wheat;
+}
+rect.odd {
+    fill: goldenrod;
+}
+circle {
+    stroke-width: 4;
+    opacity: 0.7;
+}
+circle.src {
+    fill: darkblue;
+}
+circle.src.targeted {
+    fill: deepskyblue;
+}
+circle.dst {
+    fill: sienna;
+}
+circle.dst.targeted {
+    fill: orange;
+}
+path {
+    fill: none;
+    stroke-width: 4;
+    stroke: blue;
+    opacity: 0.5;
+}

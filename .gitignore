@@ -1,0 +1,6 @@
+.bundle/
+.git/
+.idea/
+bin/
+vendor/
+*~
