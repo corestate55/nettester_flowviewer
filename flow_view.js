@@ -155,14 +155,22 @@ function draw_flow_data(flow_paths) {
     // draw edge circle
     function mouse_event(th, is_mouseover) {
         var class_list = th.getAttribute("class").split(" ");
-        var mac_key = class_list.find(function(class_str) {
-            return class_str.match(/mac_/);
-        });
-        var direction_key = class_list.find(function(class_str) {
-            return class_str.match(/to_/);
-        });
-        svg.selectAll("." + mac_key + "." + direction_key)
-            .classed("targeted", is_mouseover);
+        var class_words = [""];
+
+        function push_to(re_list) {
+            re_list.forEach(function(re) {
+                var word = class_list.find(function(class_str) {
+                    return class_str.match(re);
+                });
+                if(word) class_words.push(word);
+            });
+        }
+        push_to([/mac_/, /to_/, /flood/, /rule_/]);
+        var class_str = class_words.join(".");
+        if(class_str.length > 1) {
+            svg.selectAll(class_str)
+                .classed("targeted", is_mouseover);
+        }
     }
 
     svg.selectAll("circle")

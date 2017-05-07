@@ -27,7 +27,7 @@ function mark_flood_for_psw_flows(psw_flows) {
     edge_ports.forEach(function(port) {
         psw_flows[port].forEach(function(flow){
             // rule from psw edgeport includes flooding.
-            flow.flood_mark = true;
+            if(flow.output === 1) { flow.flood_mark = true; }
         });
     });
 }
@@ -47,10 +47,14 @@ function gen_keys(sw, flow) {
             keys.push("to_tester");
         }
     } else {
-        if(flow.in_port > 1) { // psw edge port
+        if(flow.in_port > 1
+            && (flow.output === 1 || flow.action_flood)) {
+            // psw edge port
             keys.push("to_tester");
-        } else {
+        } else if(flow.in_port === 1 && flow.output > 1){
             keys.push("to_testee");
+        } else {
+            keys.push("rule_" + flow.index);
         }
     }
     return keys;
