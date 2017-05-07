@@ -75,7 +75,7 @@ function draw_flow_data(flow_paths) {
     console.log(all_edges);
 
     var lradius = size / 3;
-    var cradius = lradius * Math.PI / all_edges.length * 0.8;
+    var cradius = lradius * Math.PI / all_edges.length * 0.9;
     var rad = d3.scalePoint()
         .domain(Object.keys(all_edges).concat(all_edges.length))
         .range([0, 2 * Math.PI]);
@@ -84,19 +84,20 @@ function draw_flow_data(flow_paths) {
         .range([0, 360]);
 
     function descr(d) {
-        return "[" + d.index + "] " + d.sw + " " + d.port
-        + " (" + d.flow.in_port + "->" + d.flow.output + ")";
+        var str = "[" + d.index + "] " + d.sw + " " + d.port
+            + " (" + d.flow.in_port + "->" + d.flow.output + ")";
+        return str.replace(/\$/g, "");
     }
 
     // draw arc
     // ref: Banded Arcs - bl.ocks.org
     // https://bl.ocks.org/mbostock/938288
     var port_arc = d3.arc()
-        .innerRadius(lradius)
-        .outerRadius(lradius + cradius*3);
+        .innerRadius(lradius - cradius*3)
+        .outerRadius(lradius);
     var sw_arc = d3.arc()
-        .innerRadius(lradius + cradius*4)
-        .outerRadius(lradius + cradius*7);
+        .innerRadius(lradius - cradius*7)
+        .outerRadius(lradius - cradius*4);
     var aaoff = Math.PI/2; // arc angle offset
     Object.keys(edge_table).forEach(function(sw) {
         var port_table = edge_table[sw];
