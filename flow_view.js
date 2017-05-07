@@ -1,260 +1,137 @@
 "use strict";
 
-function gen_key_str(flow, flow_index) {
-    if (flow.key) {
-        return flow.key;
-    } else {
-        return "key_" + flow_index;
-    }
+function pos_x(radius, theta) {
+    return radius * Math.cos(theta);
 }
 
-function list_ports(sw_flows) {
-    return sw_flows
-        .map(function(e) {
-            return e.in_port;
-        })
-        .filter(function(port, i, self) { // uniq
-            return self.indexOf(port) === i;
-        })
-        .sort(function(a, b) { return a - b; }); // compare numeric
+function pos_y(radius, theta) {
+    return radius * Math.sin(theta);
 }
 
-function add_flow_edge_to(port_table, type, port, flow) {
-    var flow_edge = {
-        "type" : type,
-        "flow" : flow
+function gen_path_edges(flow_paths) {
+    var edge_table = {
+        "$psw" : {},
+        "$ssw" : {}
     };
-    if(port_table[port]) {
-        port_table[port].push(flow_edge);
-    } else {
-        port_table[port] = [ flow_edge ];
-    }
-    return flow_edge;
-}
 
-function gen_per_port_flow_edges(sw_flows) {
-    var port_table = {};
-    sw_flows.forEach(function(flow, flow_index) {
-        var src_edge = add_flow_edge_to(
-            port_table, "src", flow.in_port, flow);
+    flow_paths.forEach(function(path) {
+        path.src.type = "src";
+        path.src.flow = path.flow;
+        path.src.pair = path.dst;
+        path.dst.type = "dst";
+        path.dst.flow = path.flow;
+        path.dst.pair = path.src;
 
-        var dst_edges = [];
-        if(flow.actions.output === "FLOOD") {
-            // multiple destination
-            var flooded_ports = list_ports(sw_flows).filter(
-                function(d){ return d !== flow.in_port; }
-            );
-            flooded_ports.forEach(function(dst_port) {
-                dst_edges.push(add_flow_edge_to(
-                    port_table, "dst", dst_port, flow
-                ));
-            })
+        if(edge_table[path.src.sw][path.src.port]) {
+            edge_table[path.src.sw][path.src.port].push(path.src);
         } else {
-            // single destination
-            dst_edges.push(add_flow_edge_to(
-                port_table, "dst", flow.actions.output, flow));
+            edge_table[path.src.sw][path.src.port] = [ path.src ];
         }
-
-        // link counter-part edge for each other
-        src_edge["pair_edges"] = dst_edges;
-        dst_edges.forEach(function(dst_edge) {
-            dst_edge["pair_edges"] = [ src_edge ];
-        });
-        // add key of edge
-        src_edge["key"] = gen_key_str(src_edge.flow, flow_index);
-        dst_edges.forEach(function(dst_edge) {
-            dst_edge["key"] = gen_key_str(dst_edge.flow, flow_index);
-        });
-    });
-    return port_table;
-}
-
-function serialize_per_port_flow_edges(per_port_flow_edges) {
-    var total_sn = 1; // serial number (sn=0 reserved for specific use)
-    var list = [];
-    Object.keys(per_port_flow_edges).forEach(function(key) {
-        var port_flows = per_port_flow_edges[key]; // flow_edge list
-        port_flows.forEach(function(flow_edge) {
-            flow_edge["serial_num"] = total_sn; // add serial number
-            list.push(flow_edge);
-            total_sn = total_sn + 1;
-        });
-    });
-    return list;
-}
-
-var radius = 15;
-var scale;
-function set_scale(dom_x_max, range_x_max) {
-    var padding = 0;
-    scale = d3.scaleLinear()
-        .domain( [0, dom_x_max] )
-        .range( [padding, range_x_max-padding] );
-}
-
-function pos_x(d) {
-    return scale(d.serial_num * 2 * radius);
-}
-
-var pos_y; // function alias
-function ssw_pos_y(d) {
-    return scale(5 * radius);
-}
-function psw_pos_y(d) {
-    return scale(20 * radius);
-}
-
-function pos_y_path_mid(d,i) {
-    return pos_y(d) + scale(i%2 === 0 ? radius : 15 * radius);
-}
-
-function pos_x_port_rect(d) {
-    return pos_x(d) - scale(radius);
-}
-
-function pos_y_port_rect(d) {
-    return pos_y(d) - scale(2 * radius);
-}
-
-function draw_flow_edges(target_switch, svg, flow_edges) {
-    function mouseivent(th, is_mouseover) {
-        var key = th.getAttribute("class")
-            .match(/key_(\S+)/)[0];
-        svg.selectAll("." + key)
-            .classed("targeted", is_mouseover);
-    }
-
-    svg.selectAll("circle." + target_switch)
-        .data(flow_edges)
-        .enter()
-        .append("circle")
-        .attrs({
-            "class" : function(d) {
-                return [target_switch, d.type, d.key].join(" ");
-            },
-            "cx" : pos_x,
-            "cy" : pos_y,
-            "r" : scale(radius)
-        })
-        .on("mouseover", function() { mouseivent(this, true) })
-        .on("mouseout", function() { mouseivent(this, false)})
-        .append("title")
-        .text(function(d) {
-            return "ID:" + d.serial_num
-                // + ", Pair ID:" + d.pair_edge.serial_num
-                + ", Flow:" + d.flow.rule_str;
-        });
-}
-
-function draw_paths(target_switch, svg, flow_edges) {
-    var line = d3.line()
-        .curve(d3.curveBundle.beta(0.8))
-        .x(pos_x)
-        .y(pos_y_path_mid);
-
-    flow_edges.forEach(function(flow_edge) {
-        if(flow_edge.type === "src") {
-            var src_edge = flow_edge;
-            var dst_edges = flow_edge.pair_edges;
-            dst_edges.forEach(function(dst_edge){
-                var mid_edge = {
-                    // position of x-axis
-                    "serial_num" : (src_edge.serial_num + dst_edge.serial_num) /2.0
-                };
-                svg.append("path")
-                    .attrs({
-                        "class": [target_switch, src_edge.key].join(" "),
-                        "d": line([src_edge, mid_edge, dst_edge])
-                    });
-            });
+        if(edge_table[path.dst.sw][path.dst.port]) {
+            edge_table[path.dst.sw][path.dst.port].push(path.dst);
+        } else {
+            edge_table[path.dst.sw][path.dst.port] = [ path.dst ];
         }
     });
-}
+    console.log(edge_table);
 
-function draw_ports(target_switch, svg, per_port_flow_edge) {
-    var ports = [];
-    Object.keys(per_port_flow_edge).forEach(function(key) {
-        var edge_list = per_port_flow_edge[key];
-        ports.push({
-            "serial_num" : edge_list[0].serial_num, // position of x
-            "port" : key==="FLOOD" ? key : Number(key), // port number (name)
-            "size" : edge_list.length // x-axis width
+    // serialize order by switch/port
+    var all_edges = [];
+    Object.keys(edge_table).forEach(function(sw) {
+        var port_table = edge_table[sw];
+        Object.keys(port_table).sort().forEach(function(port) {
+            all_edges = all_edges.concat(port_table[port])
         });
     });
+    // add index number
+    var index = 0;
+    all_edges.forEach(function(edge) {
+        edge["index"] = index;
+        index = index + 1;
+    });
+    console.log(all_edges);
 
-    function label(d) { return "Port:" + d.port; }
-
-    svg.selectAll("rect." + target_switch)
-        .data(ports)
-        .enter()
-        .append("rect")
-        .attrs({
-            "class" : function(d,i) {
-                return [target_switch, i%2===0 ? "even" : "odd"].join(" ");
-            },
-            "x" : pos_x_port_rect,
-            "y" : pos_y_port_rect,
-            "width" : function(d) {
-                return scale(d.size * radius * 2);
-            },
-            "height" : scale(radius * 3)
-        })
-        .on("mouseover", function() {
-            d3.select(this).classed("targeted", true);
-        })
-        .on("mouseout", function() {
-            d3.select(this).classed("targeted", false);
-        })
-        .append("title")
-        .text(label);
-
-    // label
-    svg.selectAll("text." + target_switch)
-        .data(ports)
-        .enter()
-        .append("text")
-        .attrs({
-            "class" : target_switch,
-            "x" : pos_x_port_rect,
-            "y" : pos_y_port_rect
-        })
-        .text(label);
+    return all_edges;
 }
 
-function draw_flow_tables(ssw_flows, psw_flows) {
-    console.log("## draw_flow_tables");
+function draw_flow_data(flow_data, nested_flow_data, flow_paths) {
+    // console.log(flow_data);
+    // console.log(nested_flow_data);
+    console.log(flow_paths);
 
-    var height = 500, width = 800; // svg canvas size
+    var size = 600;
     var svg = d3.select("body")
         .select("div#flow_view")
         .append("svg")
         .attrs({
-            "width": width,
-            "height": height}
-        );
+            "width": size,
+            "height": size
+        })
+        .append("g")
+        .attr("transform",
+            "translate(" + size / 2 + "," + size / 2 + ")"); // centering
 
-    // ssw data
-    var ssw_per_port_flow_edges = gen_per_port_flow_edges(ssw_flows);
-    var ssw_flow_edges = serialize_per_port_flow_edges(ssw_per_port_flow_edges);
-    // console.log(ssw_flow_edges);
+    var all_edges = gen_path_edges(flow_paths);
 
-    // psw data
-    var psw_per_port_flow_edges = gen_per_port_flow_edges(psw_flows);
-    var psw_flow_edges = serialize_per_port_flow_edges(psw_per_port_flow_edges);
-    // console.log(psw_flow_edges);
+    var lradius = size / 3;
+    var cradius = lradius * Math.PI / all_edges.length * 0.8;
+    var theta = d3.scalePoint()
+        .domain(Object.keys(all_edges).concat(all_edges.length))
+        .range([0, 2 * Math.PI]);
 
-    var edges_max = Math.max(ssw_flow_edges.length, psw_flow_edges.length);
-    set_scale( (edges_max+1) * 2 * radius, width);
+    function descr(d) {
+        return d.sw + " " + d.port
+        + " (" + d.flow.in_port + "->" + d.flow.output + ")";
+    }
+    svg.selectAll("circle")
+        .data(all_edges)
+        .enter()
+        .append("circle")
+        .attrs({
+            "class" : function(d) { return d.type + " " + d.flow.tags; },
+            "cx": function(d) { return pos_x(lradius, theta(d.index)); },
+            "cy": function(d) { return pos_y(lradius, theta(d.index)); },
+            "r" : cradius
+        })
+        .append("title")
+        .text(descr);
 
-    // draw ssw
-    pos_y = ssw_pos_y;
-    draw_ports("ssw", svg, ssw_per_port_flow_edges);
-    draw_flow_edges("ssw", svg, ssw_flow_edges);
-    draw_paths("ssw", svg, ssw_flow_edges);
+    svg.selectAll("text")
+        .data(all_edges)
+        .enter()
+        .append("text")
+        .attrs({
+            "x": function(d) { return pos_x(lradius, theta(d.index)); },
+            "y": function(d) { return pos_y(lradius, theta(d.index)); }
+        })
+        .text(descr);
 
-    // draw psw
-    pos_y = psw_pos_y;
-    draw_ports("psw", svg, psw_per_port_flow_edges);
-    draw_flow_edges("psw", svg, psw_flow_edges);
-    draw_paths("psw", svg, psw_flow_edges);
+    var mid = 0.3;
+    var line = d3.line()
+        .curve(d3.curveBundle.beta(0.9))
+        .x(function(d, i) {
+            var x = pos_x(lradius, theta(d));
+            return (0 < i && i < 3) ? mid * x : x;
+        })
+        .y(function(d, i) {
+            var y = pos_y(lradius, theta(d));
+            return (0 < i && i < 3) ? mid * y : y;
+        });
+
+    flow_paths.forEach(function(flow_path) {
+        svg.append("path")
+            .attrs({
+                "class" : "path", // TODO
+                "d" : line(gen_path_index(flow_path))
+            });
+    });
 }
+
+function gen_path_index(flow_path) {
+    var src = flow_path.src.index;
+    var dst = flow_path.dst.index;
+    return [src, src, dst, dst];
+}
+
+// ref
+// Banded Arcs - bl.ocks.org https://bl.ocks.org/mbostock/938288

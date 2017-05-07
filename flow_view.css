@@ -2,15 +2,7 @@
     stroke-width: 4;
     stroke: red;
 }
-rect {
-    opacity: 0.5;
-}
-rect.even {
-    fill: tan;
-}
-rect.odd {
-    fill: whitesmoke;
-}
+
 circle {
     stroke-width: 4;
     opacity: 0.7;
@@ -27,12 +19,14 @@ circle.dst {
 circle.dst.targeted {
     fill: orange;
 }
+
+text {
+    font-size: xx-small;
+}
+
 path {
     fill: none;
-    stroke-width: 2;
+    stroke-width: 1;
     stroke: darkolivegreen;
     opacity: 0.5;
-}
-text {
-    font-size: small;
 }
