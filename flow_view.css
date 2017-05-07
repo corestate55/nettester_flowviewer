@@ -30,3 +30,11 @@ path {
     stroke: darkolivegreen;
     opacity: 0.5;
 }
+path.arc.port {
+    stroke: none;
+    fill: darkseagreen;
+}
+path.arc.switch {
+    stroke: none;
+    fill: palegreen;
+}
