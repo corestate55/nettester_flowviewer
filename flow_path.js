@@ -123,15 +123,6 @@ function build_path_intra_switch(sw, sw_flows) {
     return paths;
 }
 
-function build_path_inter_switch() {
-    var isp = "$1"; // inter switch port
-    return [ path_elm(
-        path_edge("$ssw", isp),
-        path_edge("$psw", isp),
-        { "tags" : "" } // customized flow object
-    )];
-}
-
 function build_flow_path(nested_flows) {
     var ssw_flows = nested_flows["$ssw"];
     var ssw_paths = build_path_intra_switch("$ssw", ssw_flows);
@@ -139,9 +130,7 @@ function build_flow_path(nested_flows) {
     var psw_flows = nested_flows["$psw"];
     var psw_paths = build_path_intra_switch("$psw", psw_flows);
 
-    var isp_path = build_path_inter_switch();
-
-    var all_paths = ssw_paths.concat(psw_paths, isp_path);
+    var all_paths = ssw_paths.concat(psw_paths);
     all_paths.forEach(function(path, index) {
         path["index"] = index;
     });

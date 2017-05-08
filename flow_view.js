@@ -56,25 +56,26 @@ function gen_path_edges(edge_table) {
 }
 
 function draw_flow_data(flow_paths) {
-    var size = 600;
+    var width = 700;
+    var height = 500;
     var svg = d3.select("body")
         .select("div#flow_view")
         .append("svg")
         .attrs({
-            "width": size,
-            "height": size
+            "id" : "flow_view_canvas",
+            "width": width,
+            "height": height
         })
         .append("g")
         .attr("transform",
-            "translate(" + size/2 + "," + size/2 + ")"); // centering
+            "translate(" + width/2 + "," + height/2 + ")"); // centering
 
     // list of all edges (flow rule edge)
     var edge_table = gen_edge_table(flow_paths);
     var all_edges = gen_path_edges(edge_table);
-    console.log(edge_table);
-    console.log(all_edges);
 
-    var lradius = size / 3;
+    // parameters
+    var lradius = Math.min(height, width) / 3;
     var cradius = lradius * Math.PI / all_edges.length * 0.9;
     var rad = d3.scalePoint()
         .domain(Object.keys(all_edges).concat(all_edges.length))
@@ -83,15 +84,14 @@ function draw_flow_data(flow_paths) {
         .domain(Object.keys(all_edges).concat(all_edges.length))
         .range([0, 360]);
 
-    function descr(d) {
-        var str = "[" + d.index + "] " + d.sw + " " + d.port
-            + " (" + d.flow.in_port + "->" + d.flow.output + ")";
-        return str.replace(/\$/g, "");
-    }
-
     // draw arc
     // ref: Banded Arcs - bl.ocks.org
     // https://bl.ocks.org/mbostock/938288
+
+    function arc_mouse_event(th, is_mouse_over) {
+        d3.select(th).classed("targeted", is_mouse_over);
+    }
+
     var port_arc = d3.arc()
         .innerRadius(lradius - cradius*3)
         .outerRadius(lradius);
@@ -99,6 +99,7 @@ function draw_flow_data(flow_paths) {
         .innerRadius(lradius - cradius*7)
         .outerRadius(lradius - cradius*4);
     var aaoff = Math.PI/2; // arc angle offset
+
     Object.keys(edge_table).forEach(function(sw) {
         var port_table = edge_table[sw];
         var port_list = Object.keys(port_table);
@@ -114,8 +115,10 @@ function draw_flow_data(flow_paths) {
                         .startAngle(rad(start) + aaoff)
                         .endAngle(rad(end) + aaoff)
                 })
+                .on("mouseover", function() { arc_mouse_event(this, true); })
+                .on("mouseout", function() { arc_mouse_event(this, false); })
                 .append("title")
-                .text(sw + ", port:" + port);
+                .text((sw + ", port:" + port).replace(/\$/g, ""));
         });
         // switch arc
         var head = port_table[port_list[0]];
@@ -129,11 +132,14 @@ function draw_flow_data(flow_paths) {
                     .startAngle(rad(head_index) + aaoff)
                     .endAngle(rad(tail_index) + aaoff)
             })
+            .on("mouseover", function() { arc_mouse_event(this, true); })
+            .on("mouseout", function() { arc_mouse_event(this, false); })
             .append("title")
-            .text(sw);
+            .text(sw.replace(/\$/g, ""));
     });
 
     // draw path
+
     var mid = 0.3;
     var line = d3.line()
         .curve(d3.curveBundle.beta(0.9))
@@ -154,7 +160,14 @@ function draw_flow_data(flow_paths) {
     });
 
     // draw edge circle
-    function mouse_event(th, is_mouseover) {
+
+    function descr(d) {
+        var str = "[" + d.index + "] " + d.sw + " " + d.port
+            + " (" + d.flow.in_port + "->" + d.flow.output + ")";
+        return str.replace(/\$/g, "");
+    }
+
+    function edge_mouse_event(th, is_mouse_over) {
         var class_list = th.getAttribute("class").split(" ");
         var class_words = [""];
 
@@ -170,7 +183,7 @@ function draw_flow_data(flow_paths) {
         var class_str = class_words.join(".");
         if(class_str.length > 1) {
             svg.selectAll(class_str)
-                .classed("targeted", is_mouseover);
+                .classed("targeted", is_mouse_over);
         }
     }
 
@@ -184,14 +197,15 @@ function draw_flow_data(flow_paths) {
             "cy": function(d) { return pos_y(lradius, rad(d.index)); },
             "r" : cradius
         })
-        .on("mouseover", function() { mouse_event(this, true); })
-        .on("mouseout", function() { mouse_event(this, false); })
+        .on("mouseover", function() { edge_mouse_event(this, true); })
+        .on("mouseout", function() { edge_mouse_event(this, false); })
         .append("title")
         .text(descr);
 
     // draw text label
     // ref: Interactive text rotation with d3.js - bl.ocks.org
     // http://bl.ocks.org/d3noob/10633421
+
     svg.selectAll("text")
         .data(all_edges)
         .enter()

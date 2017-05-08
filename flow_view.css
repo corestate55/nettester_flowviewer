@@ -1,11 +1,12 @@
 .targeted {
     stroke-width: 4;
     stroke: red;
+    opacity: 1.0;
 }
 
 circle {
     stroke-width: 4;
-    opacity: 0.7;
+    opacity: 0.9;
 }
 circle.src {
     fill: darkblue;
@@ -28,13 +29,21 @@ path {
     fill: none;
     stroke-width: 1;
     stroke: darkolivegreen;
+    opacity: 0.7;
+}
+path.arc {
+    stroke: none;
     opacity: 0.5;
 }
 path.arc.port {
-    stroke: none;
     fill: aquamarine;
 }
+path.arc.port.targeted {
+    opacity: 1.0;
+}
 path.arc.switch {
-    stroke: none;
     fill: palegreen;
+}
+path.arc.switch.targeted {
+    opacity: 1.0;
 }

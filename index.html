@@ -57,6 +57,7 @@ NXST_FLOW reply (xid=0x4):
  cookie=0x0, duration=206.186s, table=0, n_packets=n/a, n_bytes=1094, idle_age=94, priority=0,in_port=1,dl_src=00:ba:dc:ab:1e:06 actions=output:7
  cookie=0x0, duration=210.724s, table=0, n_packets=n/a, n_bytes=1086, idle_age=104, priority=0,in_port=1,dl_src=00:ba:dc:ab:1e:01 actions=output:6
     </textarea>
+    <input type="button" value="(Re)Draw" onclick="redraw_view();" />
 </form>
 
 <p>View</p>
@@ -70,12 +71,23 @@ NXST_FLOW reply (xid=0x4):
 <script src="./flow_view.js"></script>
 <script type="text/javascript">
     "use strict";
-    var flow_data = build_flow_data(
-        document.flow_tables.ssw,
-        document.flow_tables.psw);
-    var nested_flow_data = build_nested_flow_data(flow_data);
-    var flow_paths = build_flow_path(nested_flow_data);
-    draw_flow_data(flow_paths);
+
+    function redraw_view() {
+        var target_dom = document.getElementById("flow_view_canvas");
+        target_dom.parentNode.removeChild(target_dom);
+        draw_view();
+    }
+
+    function draw_view() {
+        var flow_data = build_flow_data(
+            document.flow_tables.ssw,
+            document.flow_tables.psw);
+        var nested_flow_data = build_nested_flow_data(flow_data);
+        var flow_paths = build_flow_path(nested_flow_data);
+        draw_flow_data(flow_paths);
+    }
+
+    draw_view();
 </script>
 
 </body>
