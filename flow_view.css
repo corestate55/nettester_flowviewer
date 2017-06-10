@@ -7,22 +7,27 @@
 circle {
     stroke-width: 4;
     opacity: 0.9;
+    fill : gray;
 }
-circle.src {
+circle {
+    stroke-width: 4;
+    opacity: 0.9;
+}
+circle.source {
     fill: darkblue;
 }
-circle.src.targeted {
+circle.source.targeted {
     fill: deepskyblue;
 }
-circle.dst {
+circle.target {
     fill: sienna;
 }
-circle.dst.targeted {
+circle.target.targeted {
     fill: orange;
 }
 
 text {
-    font-size: xx-small;
+    font-size: x-small;
 }
 
 path {
@@ -30,20 +35,4 @@ path {
     stroke-width: 1;
     stroke: darkolivegreen;
     opacity: 0.7;
-}
-path.arc {
-    stroke: none;
-    opacity: 0.5;
-}
-path.arc.port {
-    fill: aquamarine;
-}
-path.arc.port.targeted {
-    opacity: 1.0;
-}
-path.arc.switch {
-    fill: palegreen;
-}
-path.arc.switch.targeted {
-    opacity: 1.0;
 }

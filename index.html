@@ -7,11 +7,9 @@
 </head>
 <body>
 <h1>Flow viewer</h1>
-<p>Run http server by</p>
-<pre>
-    ruby -rwebrick -e 'WEBrick::HTTPServer.new(:DocumentRoot => "./", :Port => 8000).start'
-</pre>
-
+<p>
+    Default flows from : <a href="http://qiita.com/corestate55/items/d6a8cdc03de09a46877c">NetTesterでad-hocなテスト作業を拡張する - Qiita</a>
+</p>
 <form name="flow_tables">
     <p>SSW Flow-table: OVS (0xdad1c001)</p>
     <textarea name="ssw" cols="100" rows="10">
@@ -57,17 +55,17 @@ NXST_FLOW reply (xid=0x4):
  cookie=0x0, duration=206.186s, table=0, n_packets=n/a, n_bytes=1094, idle_age=94, priority=0,in_port=1,dl_src=00:ba:dc:ab:1e:06 actions=output:7
  cookie=0x0, duration=210.724s, table=0, n_packets=n/a, n_bytes=1086, idle_age=104, priority=0,in_port=1,dl_src=00:ba:dc:ab:1e:01 actions=output:6
     </textarea>
-    <input type="button" value="(Re)Draw" onclick="redraw_view();" />
+    <p>
+        <input type="button" value="(Re)Draw" onclick="redraw_view();" />
+    </p>
 </form>
 
-<p>View</p>
 <div id="flow_view"></div>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
 <script src="https://d3js.org/d3-scale.v1.min.js"></script>
 <script src="./flow_data.js"></script>
-<script src="./flow_path.js"></script>
 <script src="./flow_view.js"></script>
 <script type="text/javascript">
     "use strict";
@@ -79,12 +77,13 @@ NXST_FLOW reply (xid=0x4):
     }
 
     function draw_view() {
-        var flow_data = build_flow_data(
+        var flows = parse_flows(
             document.flow_tables.ssw,
             document.flow_tables.psw);
-        var nested_flow_data = build_nested_flow_data(flow_data);
-        var flow_paths = build_flow_path(nested_flow_data);
-        draw_flow_data(flow_paths);
+        var nodes = build_flows(flows);
+        var hierarchized_nodes = stratify_nested_nodes(nodes);
+        var paths = generate_path(hierarchized_nodes.leaves());
+        draw_flow_data(hierarchized_nodes, paths);
     }
 
     draw_view();
