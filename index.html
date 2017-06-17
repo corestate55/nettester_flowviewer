@@ -77,13 +77,13 @@ NXST_FLOW reply (xid=0x4):
     }
 
     function draw_view() {
-        var flows = parse_flows(
+        var flows = parseFlowStrings(
             document.flow_tables.ssw,
             document.flow_tables.psw);
-        var nodes = build_flows(flows);
-        var hierarchized_nodes = stratify_nested_nodes(nodes);
-        var paths = generate_path(hierarchized_nodes.leaves());
-        draw_flow_data(hierarchized_nodes, paths);
+        var nodes = buildFlows(flows);
+        var hierarchizedNodes = stratifyNodes(nodes);
+        var paths = generatePaths(hierarchizedNodes.leaves());
+        drawFlowData(hierarchizedNodes, paths);
     }
 
     draw_view();

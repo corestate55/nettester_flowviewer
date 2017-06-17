@@ -1,224 +1,236 @@
-"use strict";
 
-function add_index_to_flows(flows) {
+function addIndexToFlows(flows) {
+    "use strict";
     flows.forEach(function(flow, index) {
         flow["index"] = index;
     });
     return flows;
 }
 
-function parse_flows(ssw_textarea, psw_textarea) {
-    var ssw_flows = parse_flows_from(ssw_textarea);
-    var psw_flows = parse_flows_from(psw_textarea);
-
-    return add_index_to_flows(ssw_flows.concat(psw_flows));
-}
-
-function parse_flows_from(flow_table_textarea) {
-    var lines = flow_table_textarea.value
+function parseFlowStringsFrom(flowTableTextArea) {
+    "use strict";
+    var lines = flowTableTextArea.value
         .split("\n")
-        .filter(function (thisobj) {
+        .filter(function(thisobj) {
             // discard header, empty line, and so on.
             return thisobj.match(/^\s+cookie/i);
         });
 
-    var numeric_values = ["priority", "in_port", "dl_vlan"];
-    var mac_values = ["dl_dst", "dl_src"];
-    return lines.map(function (line) {
+    return lines.map(function(line) {
         // console.log("No: " + index + " line=", line);
-        var data = { // defaults
-            "switch" : flow_table_textarea.name,
-            "rule_str" : line, // original flow rule string
-            "in_port" : null,
-            "output" : null,
-            "priority" : null,
-            "vlan" : null,
-            "mac" : null,
-            "action_flood": false,
-            "flood_mark" : false
+        var flow = { // defaults
+            "switch": flowTableTextArea.name,
+            "ruleStr": line, // original flow rule string
+            "in_port": null,
+            "output": null,
+            "priority": null,
+            "vlan": null,
+            "mac": null,
+            "actionFlood": false,
+            "floodMark": false
         };
 
         // parse numeric values
-        numeric_values.forEach(function (nvalue) {
-            var re = new RegExp(nvalue + "=(\\d+)");
+        var numericValues = ["priority", "in_port", "dl_vlan"];
+        numericValues.forEach(function(numValue) {
+            var re = new RegExp(numValue + "=(\\d+)");
             var result = line.match(re);
-            if(result) {
-                if(nvalue === "dl_vlan") nvalue = "vlan_id";
-                data[nvalue] = Number(result[1]);
+            if (result) {
+                if (numValue === "dl_vlan") {
+                    numValue = "vlan_id";
+                }
+                flow[numValue] = Number(result[1]);
             }
         });
         // parse mac address
-        mac_values.forEach(function (svalue) {
-            var re = new RegExp(svalue + "=(\\S+)");
+        var macValues = ["dl_dst", "dl_src"];
+        macValues.forEach(function(macValue) {
+            var re = new RegExp(macValue + "=(\\S+)");
             var result = line.match(re);
             // set svg item class key by mac_address
-            if(result) {
-                data["mac"] = result[1];
+            if (result) {
+                flow["mac"] = result[1];
             }
         });
         // parse actions
         var result = line.match(/actions=(\S+)/);
-        if(result) {
-            var actions_str = result[1];
-            if(actions_str.match(/FLOOD/)) {
+        if (result) {
+            var actionsStr = result[1];
+            if (actionsStr.match(/FLOOD/)) {
                 // flood action only used in ssw
-                data.output = "FLOOD";
-                data.action_flood = true;
-                data.flood_mark = true;
+                flow.output = "FLOOD";
+                flow.actionFlood = true;
+                flow.floodMark = true;
             }
             var res;
-            res = actions_str.match(/output:(\d+)/);
-            if(res) {
-                data.output = Number(res[1]);
+            res = actionsStr.match(/output:(\d+)/);
+            if (res) {
+                flow.output = Number(res[1]);
             }
-            res = actions_str.match(/mod_vlan_vid:(\d+)/);
-            if(res) {
+            res = actionsStr.match(/mod_vlan_vid:(\d+)/);
+            if (res) {
                 // for exclusive mode wire
-                data.vlan = res[1];
+                flow.vlan = res[1];
             }
         }
-        return data;
+        return flow;
     });
 }
 
-function generate_node_name(switch_name, port, flow_index, dir) {
-    return [switch_name, "port", port, "flow", flow_index, dir].join("_");
+function parseFlowStrings(sswTextArea, pswTextArea) {
+    "use strict";
+    var sswFlows = parseFlowStringsFrom(sswTextArea);
+    var pswFlows = parseFlowStringsFrom(pswTextArea);
+
+    return addIndexToFlows(sswFlows.concat(pswFlows));
 }
 
-function convert_mac_to_tag(mac) {
+function generateNodeName(switchName, port, flowIndex, dir) {
+    "use strict";
+    return [switchName, "port", port, "flow", flowIndex, dir].join("_");
+}
+
+function convertMacToTag(mac) {
+    "use strict";
     return "mac_" + mac.replace(/:/g, "");
 }
 
-function generate_tags(data) {
-    var tags = [ "sw_" + data.switch ];
-    if(!data.action_flood && data.mac) {
-        tags.push(convert_mac_to_tag(data.mac));
+function generateTags(flow) {
+    "use strict";
+    var tags = ["sw_" + flow.switch];
+    if (!flow.actionFlood && flow.mac) {
+        tags.push(convertMacToTag(flow.mac));
     }
-    if(data.flood_mark) {
+    if (flow.floodMark) {
         tags.push("flood");
     }
-    if (data.switch === "ssw") {
-        if(data.in_port > 1) { // ssw edge port
+    if (flow.switch === "ssw") {
+        if (flow.in_port > 1) { // ssw edge port
             tags.push("to_testee");
         } else {
             tags.push("to_tester");
         }
+    } else if (flow.in_port > 1 && (flow.output === 1 || flow.actionFlood)) {
+        // psw edge port
+        tags.push("to_tester");
+    } else if (flow.in_port === 1 && flow.output > 1) {
+        tags.push("to_testee");
     } else {
-        if(data.in_port > 1
-            && (data.output === 1 || data.action_flood)) {
-            // psw edge port
-            tags.push("to_tester");
-        } else if(data.in_port === 1 && data.output > 1){
-            tags.push("to_testee");
-        } else {
-            tags.push("rule_" + data.index);
-        }
+        tags.push("rule_" + flow.index);
     }
+
     return tags.join(" ");
 }
 
-function generate_node(data, dir) {
-    var sport, dport;
-    if(dir === "source") {
-        sport = data.in_port;
-        dport = data.output;
+function generateNode(flow, dir) {
+    "use strict";
+    var sPort, dPort;
+    if (dir === "source") {
+        sPort = flow.in_port;
+        dPort = flow.output;
     } else {
-        dport = data.in_port;
-        sport = data.output;
+        dPort = flow.in_port;
+        sPort = flow.output;
     }
     return {
-        "name" : generate_node_name(data.switch, sport, data.index, dir),
-        "switch" : data.switch,
-        "tags" : generate_tags(data),
-        "flow_index" : data.index,
-        "type" : dir,
-        "source_port" : sport,
-        "target_port" : dport,
-        "data" : data
+        "name": generateNodeName(flow.switch, sPort, flow.index, dir),
+        "switch": flow.switch,
+        "tags": generateTags(flow),
+        "flowIndex": flow.index,
+        "type": dir,
+        "sourcePort": sPort,
+        "targetPort": dPort,
+        "data": flow
     };
 }
 
-function build_flows(flows) {
+function buildFlows(flows) {
+    "use strict";
     var nodes = [];
-    flows.forEach(function(d) {
-        nodes.push(generate_node(d, "source"));
-        nodes.push(generate_node(d, "target"));
+    flows.forEach(function(flow) {
+        nodes.push(generateNode(flow, "source"));
+        nodes.push(generateNode(flow, "target"));
     });
     return nodes;
 }
 
-function nest_nodes(nodes) {
+function nestNodes(nodes) {
+    "use strict";
     return d3.nest()
         .key(function(d) { return d.switch; })
         .sortKeys(d3.ascending)
-        .key(function(d) { return d.source_port; })
-        .sortKeys(function(a,b) { return a - b; })
+        .key(function(d) { return d.sourcePort; })
+        .sortKeys(function(a, b) { return a - b; })
         .entries(nodes);
 }
 
-function complement_tags(paths) {
+function complementTags(paths) {
+    "use strict";
     // create mac addr table
-    var mac_table = {
-        "ssw" : {},
-        "psw" : {}
+    var macTable = {
+        "ssw": {},
+        "psw": {}
     };
-    function record_table(data) {
-        if(data.source_port > 1 && !data.data.action_flood && data.data.mac) {
+    function recordMacTable(node) {
+        if (node.sourcePort > 1 && !node.data.actionFlood && node.data.mac) {
             // port1 of ssw/psw is inter_switch link
             // so, port1 is not tied to any host(mac addr).
-            if(!mac_table[data.switch][data.source_port]) {
-                mac_table[data.switch][data.source_port] = [];
+            if (!macTable[node.switch][node.sourcePort]) {
+                macTable[node.switch][node.sourcePort] = [];
             }
-            mac_table[data.switch][data.source_port].push(data.data.mac);
+            macTable[node.switch][node.sourcePort].push(node.data.mac);
         }
     }
     paths.forEach(function(path) {
-        record_table(path.source.data);
-        record_table(path.target.data);
+        recordMacTable(path.source.data);
+        recordMacTable(path.target.data);
     });
 
     // complement tag info
-    function complement_tag_info(source, target) {
-        var port_macs = mac_table[source.switch][source.source_port] || null;
-        if(!source.data.mac && port_macs) {
-            port_macs.forEach(function(mac) {
-                var mac_tag = convert_mac_to_tag(mac);
-                source.tags = source.tags + " " + mac_tag;
-                target.tags = target.tags + " " + mac_tag;
+    function complementTagInfo(source, target) {
+        var portMacs = macTable[source.switch][source.sourcePort] || null;
+        if (!source.data.mac && portMacs) {
+            portMacs.forEach(function(mac) {
+                var macTag = convertMacToTag(mac);
+                source.tags = source.tags + " " + macTag;
+                target.tags = target.tags + " " + macTag;
             });
         }
     }
     paths.forEach(function(path) {
         var source = path.source.data;
         var target = path.target.data;
-        complement_tag_info(source, target);
+        complementTagInfo(source, target);
     });
     return paths;
 }
 
-function generate_path(nodes) {
+function generatePaths(nodes) {
+    "use strict";
     var paths = [];
-    var nodes_name_map = d3.map(nodes, function(d) {
+    var nodesNameMap = d3.map(nodes, function(d) {
         return d.data.name;
     });
-    nodes.forEach(function(d) {
-        if(d.data.type === "source") {
-            var target_name = generate_node_name(
-                d.data.switch, d.data.target_port, d.data.flow_index, "target");
+    nodes.forEach(function(node) {
+        if (node.data.type === "source") {
+            var targetName = generateNodeName(
+                node.data.switch, node.data.targetPort, node.data.flowIndex, "target");
             paths.push({
-                "source" : d,
-                "target" : nodes_name_map.get(target_name)
+                "source": node,
+                "target": nodesNameMap.get(targetName)
             });
         }
     });
 
-    return complement_tags(paths);
+    return complementTags(paths);
 }
 
-function stratify_nested_nodes(nodes) {
+function stratifyNodes(nodes) {
+    "use strict";
     var data = {
-        "key" : "whole switches",
-        "values": nest_nodes(nodes)
+        // root node
+        "key": "whole switches",
+        "values": nestNodes(nodes)
     };
     return d3.hierarchy(data, function(d) {
         return d.values;
