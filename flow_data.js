@@ -192,8 +192,8 @@ function complementTags(paths) {
         if (!source.data.mac && portMacs) {
             portMacs.forEach(function(mac) {
                 var macTag = convertMacToTag(mac);
-                source.tags = source.tags + " " + macTag;
-                target.tags = target.tags + " " + macTag;
+                source.tags += " " + macTag;
+                target.tags += " " + macTag;
             });
         }
     }
@@ -227,12 +227,11 @@ function generatePaths(nodes) {
 
 function stratifyNodes(nodes) {
     "use strict";
-    var data = {
-        // root node
+    var rootNode = {
         "key": "whole switches",
         "values": nestNodes(nodes)
     };
-    return d3.hierarchy(data, function(d) {
+    return d3.hierarchy(rootNode, function(d) {
         return d.values;
     });
 }

@@ -3,37 +3,95 @@ function rad(deg) {
     // degree to radian
     return deg / 360 * 2 * Math.PI;
 }
+
 function pathAngle(x) {
     "use strict";
     return rad(x);
 }
+
 function isAngleHalfside(x) {
     "use strict";
     // use degree
     return (x > 90 && x < 270);
 }
+
 function nodeAngleDeg(x) {
     "use strict";
     return x - 90;
 }
+
 function nodeAngleRad(x) {
     "use strict";
     return rad(nodeAngleDeg(x));
 }
+
 function nodeX(d) {
     "use strict";
     return d.y * Math.cos(nodeAngleRad(d.x));
 }
+
 function nodeY(d) {
     "use strict";
     return d.y * Math.sin(nodeAngleRad(d.x));
 }
 
+function clearFlowRuleField() {
+    "use strict";
+    var previewFlow = document.getElementById("selected_flows");
+    previewFlow.textContent = "";
+}
+
+function previewFlowRuleField(macTags, nodes) {
+    "use strict";
+    var previewFlow = document.getElementById("selected_flows");
+    macTags.forEach(function (macTag) {
+        // clear past data
+        clearFlowRuleField();
+        // highlight
+        var foundNodes = nodes.filter(function (node) {
+            var re = new RegExp(macTag, 'g');
+            return node.data.tags.match(re);
+        });
+        var textTable = {
+            "ssw": {},
+            "psw": {}
+        };
+        foundNodes.forEach(function (node) {
+            var sw = node.data.switch;
+            var index = node.data.flowIndex;
+            textTable[sw][index] = node.data.data.ruleStr; // deduplicate
+        });
+
+        var table = document.createElement("table");
+        // table header
+        var tr = document.createElement("tr");
+        ["Switch", "Index", "Rule"].forEach(function(d) {
+            var th = document.createElement("th");
+            th.textContent = d;
+            tr.appendChild(th);
+        });
+        table.appendChild(tr);
+        // table body
+        Object.keys(textTable).forEach(function(sw) {
+            Object.keys(textTable[sw]).forEach(function(index) {
+                var tr = document.createElement("tr");
+                [sw, index, textTable[sw][index]].forEach(function(d) {
+                    var td = document.createElement("td");
+                    td.textContent = d;
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+        });
+        previewFlow.appendChild(table);
+    });
+}
+
 function drawFlowData(nodes, paths) {
     "use strict";
 
-    var width = 700;
-    var height = 700;
+    var width = 0.9 * window.innerWidth / 2;
+    var height = width;
     var radius = 0.7 * d3.min([width, height]) / 2;
     var svg = d3.select("body")
         .select("div#flow_view")
@@ -92,9 +150,11 @@ function drawFlowData(nodes, paths) {
                 svg.selectAll(["", macTag, otherTagStr].join("."))
                     .classed("targeted", isMouseOver);
             });
+            previewFlowRuleField(macTags, nodes.leaves());
         } else if (otherTagStr.length > 0) {
             svg.selectAll(["", otherTagStr].join("."))
                 .classed("targeted", isMouseOver);
+            clearFlowRuleField();
         }
     }
 
