@@ -35,62 +35,10 @@ function nodeY(d) {
     return d.y * Math.sin(nodeAngleRad(d.x));
 }
 
-function clearFlowRuleField() {
-    "use strict";
-    var previewFlow = document.getElementById("selected_flows");
-    previewFlow.textContent = "";
-}
-
-function previewFlowRuleField(macTags, nodes) {
-    "use strict";
-    var previewFlow = document.getElementById("selected_flows");
-    macTags.forEach(function (macTag) {
-        // clear past data
-        clearFlowRuleField();
-        // highlight
-        var foundNodes = nodes.filter(function (node) {
-            var re = new RegExp(macTag, 'g');
-            return node.data.tags.match(re);
-        });
-        var textTable = {
-            "ssw": {},
-            "psw": {}
-        };
-        foundNodes.forEach(function (node) {
-            var sw = node.data.switch;
-            var index = node.data.flowIndex;
-            textTable[sw][index] = node.data.data.ruleStr; // deduplicate
-        });
-
-        var table = document.createElement("table");
-        // table header
-        var tr = document.createElement("tr");
-        ["Switch", "Index", "Rule"].forEach(function(d) {
-            var th = document.createElement("th");
-            th.textContent = d;
-            tr.appendChild(th);
-        });
-        table.appendChild(tr);
-        // table body
-        Object.keys(textTable).forEach(function(sw) {
-            Object.keys(textTable[sw]).forEach(function(index) {
-                var tr = document.createElement("tr");
-                [sw, index, textTable[sw][index]].forEach(function(d) {
-                    var td = document.createElement("td");
-                    td.textContent = d;
-                    tr.appendChild(td);
-                });
-                table.appendChild(tr);
-            });
-        });
-        previewFlow.appendChild(table);
-    });
-}
-
 function drawFlowData(nodes, paths) {
     "use strict";
 
-    var width = 0.9 * window.innerWidth / 2;
+    var width = 0.9 * window.innerWidth * 0.4;
     var height = width;
     var radius = 0.7 * d3.min([width, height]) / 2;
     var svg = d3.select("body")
@@ -146,15 +94,19 @@ function drawFlowData(nodes, paths) {
         });
         var otherTagStr = otherTags.join(".");
         if (macTags.length > 0) {
+            clearSelectFlowTable();
             macTags.forEach(function(macTag) {
-                svg.selectAll(["", macTag, otherTagStr].join("."))
+                var tagList = ["", macTag, otherTagStr];
+                svg.selectAll(tagList.join("."))
                     .classed("targeted", isMouseOver);
+                selectFlowTable(tagList.join(" "));
             });
-            previewFlowRuleField(macTags, nodes.leaves());
         } else if (otherTagStr.length > 0) {
-            svg.selectAll(["", otherTagStr].join("."))
+            var tagList = ["", otherTagStr];
+            svg.selectAll(tagList.join("."))
                 .classed("targeted", isMouseOver);
-            clearFlowRuleField();
+            clearSelectFlowTable();
+            selectFlowTable(tagList.join(" "));
         }
     }
 
@@ -174,7 +126,9 @@ function drawFlowData(nodes, paths) {
         .on("mouseover", function() { edgeMouseEvent(this, true); })
         .on("mouseout", function() { edgeMouseEvent(this, false); })
         .append("title")
-        .text(function(d) { return d.data.key || d.data.data.ruleStr; });
+        .text(function(d) {
+            return d.data.flowIndex ? "Index:" + d.data.flowIndex : "";
+        });
 
     // draw text label
     svg.selectAll("text")

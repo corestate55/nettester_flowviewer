@@ -2,8 +2,13 @@
     stroke-width: 4;
     stroke: red;
     opacity: 1.0;
+    background-color: mistyrose;
 }
 
+textarea {
+    width: 100%;
+    height: 10em;
+}
 circle {
     stroke-width: 4;
     opacity: 0.9;
@@ -39,20 +44,21 @@ path {
 
 div#flow_view {
     float: left;
-    width: 50%;
+    width: 40%;
 }
 div#selected_flows {
     float: right;
-    width: 50%;
+    width: 60%;
 }
 table th {
     text-align: left;
     background: darkslategrey;
     color: aliceblue;
+    font-size: small;
     padding: 0.5em;
 }
 table td {
     text-align: left;
     vertical-align: top;
-    padding: 0.4em;
+    font-size: small;
 }
