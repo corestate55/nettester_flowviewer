@@ -34,6 +34,10 @@ circle.target.targeted {
 text {
     font-size: x-small;
 }
+text.targeted {
+    stroke: none;
+    fill: red;
+}
 
 path {
     fill: none;

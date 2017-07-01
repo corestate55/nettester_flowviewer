@@ -35,6 +35,56 @@ function nodeY(d) {
     return d.y * Math.sin(nodeAngleRad(d.x));
 }
 
+function selectFlowPath(tagStr) {
+    "use strict";
+    var svg = d3.select("#flow_view_canvas");
+    svg.selectAll(tagStr)
+        .classed("targeted", true);
+}
+
+function clearSelectFlowPath() {
+    "use strict";
+    var svg = d3.select("#flow_view_canvas");
+    svg.selectAll(".targeted")
+        .classed("targeted", false);
+}
+
+// mouse event (highlight object)
+function edgeMouseEvent(thisObj, isMouseOver) {
+    "use strict";
+    var classList = thisObj.getAttribute("class").split(" ");
+    var macTags = [];
+    var otherTags = [];
+    classList.forEach(function(tag) {
+        if (tag.match(/mac_/)) {
+            macTags.push(tag);
+        } else {
+            [/to_/, /flood/, /rule_/].forEach(function(re) {
+                if (tag.match(re)) {
+                    otherTags.push(tag);
+                }
+            });
+        }
+    });
+    var otherTagStr = otherTags.join(".");
+    if (macTags.length > 0) {
+        // if found mac-addr-tag
+        clearSelectFlowPath();
+        clearSelectFlowTable();
+        macTags.forEach(function(macTag) {
+            var tagList = ["", macTag, otherTagStr];
+            selectFlowPath(tagList.join("."));
+            selectFlowTable(tagList.join(" "));
+        });
+    } else if (otherTagStr.length > 0) {
+        var tagList = ["", otherTagStr];
+        clearSelectFlowPath();
+        clearSelectFlowTable();
+        selectFlowPath(tagList.join("."));
+        selectFlowTable(tagList.join(" "));
+    }
+}
+
 function drawFlowData(nodes, paths) {
     "use strict";
 
@@ -76,40 +126,6 @@ function drawFlowData(nodes, paths) {
             }
         });
 
-    // mouse event (highlight object)
-    function edgeMouseEvent(th, isMouseOver) {
-        var classList = th.getAttribute("class").split(" ");
-        var macTags = [];
-        var otherTags = [];
-        classList.forEach(function(tag) {
-            if (tag.match(/mac_/)) {
-                macTags.push(tag);
-            } else {
-                [/to_/, /flood/, /rule_/].forEach(function(re) {
-                    if (tag.match(re)) {
-                        otherTags.push(tag);
-                    }
-                });
-            }
-        });
-        var otherTagStr = otherTags.join(".");
-        if (macTags.length > 0) {
-            clearSelectFlowTable();
-            macTags.forEach(function(macTag) {
-                var tagList = ["", macTag, otherTagStr];
-                svg.selectAll(tagList.join("."))
-                    .classed("targeted", isMouseOver);
-                selectFlowTable(tagList.join(" "));
-            });
-        } else if (otherTagStr.length > 0) {
-            var tagList = ["", otherTagStr];
-            svg.selectAll(tagList.join("."))
-                .classed("targeted", isMouseOver);
-            clearSelectFlowTable();
-            selectFlowTable(tagList.join(" "));
-        }
-    }
-
     // draw nodes
     svg.selectAll("circle")
         .data(nodes.descendants())
@@ -136,6 +152,9 @@ function drawFlowData(nodes, paths) {
         .enter()
         .append("text")
         .attrs({
+            "class": function(d) {
+                return d.data.type + " " + d.data.tags;
+            },
             "dx": function(d) {
                 var angle = nodeAngleDeg(d.x);
                 var dx = nodeSize * 1.3;
@@ -155,6 +174,8 @@ function drawFlowData(nodes, paths) {
                 ].join("");
             }
         })
+        .on("mouseover", function() { edgeMouseEvent(this, true); })
+        .on("mouseout", function() { edgeMouseEvent(this, false); })
         .text(function(d) {
             var sp, tp;
             if (d.data.type === "source") {
@@ -165,8 +186,8 @@ function drawFlowData(nodes, paths) {
                 sp = d.data.targetPort;
             }
             return d.data.key || [
-                    "[", d.data.flowIndex, "] ",
-                    d.data.switch, " ", sp, " > ", tp
-                ].join("");
+                    "[" + d.data.flowIndex + "]",
+                    d.data.switch, sp, ">", tp
+                ].join(" ");
         });
 }

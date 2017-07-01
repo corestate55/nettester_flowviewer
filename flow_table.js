@@ -5,7 +5,7 @@ function createFlowTable(nodes) {
     var table = document.createElement("table");
     // table header
     var tr = document.createElement("tr");
-    ["Switch", "Index", "Rule"].forEach(function(d) {
+    ["Index", "Switch", "Rule"].forEach(function(d) {
         var th = document.createElement("th");
         th.textContent = d;
         tr.appendChild(th);
@@ -18,8 +18,11 @@ function createFlowTable(nodes) {
         return index % 2 === 0;
     }).forEach(function(node) {
         tr = document.createElement("tr");
+        tr.id = "flow_" + node.flowIndex;
         tr.setAttribute("class", node.tags);
-        [node.switch, node.flowIndex, node.data.ruleStr].forEach(function(d) {
+        tr.onmouseover = function() { edgeMouseEvent(this, true); };
+        tr.onmouseout = function() { edgeMouseEvent(this, false); };
+        [node.flowIndex, node.switch, node.data.ruleStr].forEach(function(d) {
             var td = document.createElement("td");
             td.textContent = d;
             tr.appendChild(td);
