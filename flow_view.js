@@ -35,26 +35,39 @@ function nodeY(d) {
     return d.y * Math.sin(nodeAngleRad(d.x));
 }
 
-function selectFlowPath(tagStr) {
+function selectElements(tagList) {
     "use strict";
     var svg = d3.select("#flow_view_canvas");
-    svg.selectAll(tagStr)
+    svg.selectAll(tagList.join("."))
         .classed("targeted", true);
+
+    var flowTable = document.getElementById("flow_table");
+    var selectedFlows = flowTable.getElementsByClassName(tagList.join(" "));
+    Array.prototype.forEach.call(selectedFlows, function(flow) {
+        flow.classList.add("targeted");
+    });
 }
 
-function clearSelectFlowPath() {
+function clearSelectedElements() {
     "use strict";
     var svg = d3.select("#flow_view_canvas");
     svg.selectAll(".targeted")
         .classed("targeted", false);
+
+    var flowTable = document.getElementById("flow_table");
+    var selectedFlows = flowTable.getElementsByClassName("targeted");
+    Array.prototype.forEach.call(selectedFlows, function(flow) {
+        flow.classList.remove("targeted");
+    });
 }
 
 // mouse event (highlight object)
-function edgeMouseEvent(thisObj, isMouseOver) {
+function edgeMouseEvent(thisObj) {
     "use strict";
     var classList = thisObj.getAttribute("class").split(" ");
     var macTags = [];
     var otherTags = [];
+
     classList.forEach(function(tag) {
         if (tag.match(/mac_/)) {
             macTags.push(tag);
@@ -66,22 +79,16 @@ function edgeMouseEvent(thisObj, isMouseOver) {
             });
         }
     });
-    var otherTagStr = otherTags.join(".");
+
     if (macTags.length > 0) {
-        // if found mac-addr-tag
-        clearSelectFlowPath();
-        clearSelectFlowTable();
+        // if found (several) mac-addr-tag(s)
+        clearSelectedElements();
         macTags.forEach(function(macTag) {
-            var tagList = ["", macTag, otherTagStr];
-            selectFlowPath(tagList.join("."));
-            selectFlowTable(tagList.join(" "));
+            selectElements(["", macTag].concat(otherTags));
         });
-    } else if (otherTagStr.length > 0) {
-        var tagList = ["", otherTagStr];
-        clearSelectFlowPath();
-        clearSelectFlowTable();
-        selectFlowPath(tagList.join("."));
-        selectFlowTable(tagList.join(" "));
+    } else if (otherTags.length > 0) {
+        clearSelectedElements();
+        selectElements([""].concat(otherTags));
     }
 }
 
@@ -139,8 +146,7 @@ function drawFlowData(nodes, paths) {
             "cy": nodeY,
             "r": nodeSize
         })
-        .on("mouseover", function() { edgeMouseEvent(this, true); })
-        .on("mouseout", function() { edgeMouseEvent(this, false); })
+        .on("mouseover", function() { edgeMouseEvent(this); })
         .append("title")
         .text(function(d) {
             return d.data.flowIndex ? "Index:" + d.data.flowIndex : "";
@@ -174,8 +180,7 @@ function drawFlowData(nodes, paths) {
                 ].join("");
             }
         })
-        .on("mouseover", function() { edgeMouseEvent(this, true); })
-        .on("mouseout", function() { edgeMouseEvent(this, false); })
+        .on("mouseover", function() { edgeMouseEvent(this); })
         .text(function(d) {
             var sp, tp;
             if (d.data.type === "source") {

@@ -1,6 +1,6 @@
 function createFlowTable(nodes) {
     "use strict";
-    var previewFlow = document.getElementById("selected_flows");
+    var flowTable = document.getElementById("flow_table");
 
     var table = document.createElement("table");
     // table header
@@ -20,8 +20,7 @@ function createFlowTable(nodes) {
         tr = document.createElement("tr");
         tr.id = "flow_" + node.flowIndex;
         tr.setAttribute("class", node.tags);
-        tr.onmouseover = function() { edgeMouseEvent(this, true); };
-        tr.onmouseout = function() { edgeMouseEvent(this, false); };
+        tr.onmouseover = function() { edgeMouseEvent(this); };
         [node.flowIndex, node.switch, node.data.ruleStr].forEach(function(d) {
             var td = document.createElement("td");
             td.textContent = d;
@@ -29,23 +28,5 @@ function createFlowTable(nodes) {
         });
         table.appendChild(tr);
     });
-    previewFlow.appendChild(table);
-}
-
-function selectFlowTable(tagStr) {
-    "use strict";
-    var previewFlow = document.getElementById("selected_flows");
-    var selectedFlows = previewFlow.getElementsByClassName(tagStr);
-    Array.prototype.forEach.call(selectedFlows, function(flow) {
-        flow.classList.add("targeted");
-    });
-}
-
-function clearSelectFlowTable() {
-    "use strict";
-    var previewFlow = document.getElementById("selected_flows");
-    var selectedFlows = previewFlow.getElementsByClassName("targeted");
-    Array.prototype.forEach.call(selectedFlows, function(flow) {
-        flow.classList.remove("targeted");
-    });
+    flowTable.appendChild(table);
 }
