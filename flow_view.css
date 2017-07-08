@@ -8,24 +8,25 @@ textarea {
     width: 100%;
     height: 10em;
 }
+
 circle {
     stroke-width: 4;
     opacity: 0.9;
     fill : gray;
 }
-circle {
-    stroke-width: 4;
-    opacity: 0.9;
-}
+
 circle.source {
     fill: darkblue;
 }
+
 circle.source.targeted {
     fill: deepskyblue;
 }
+
 circle.target {
     fill: sienna;
 }
+
 circle.target.targeted {
     fill: orange;
 }
@@ -33,6 +34,7 @@ circle.target.targeted {
 text {
     font-size: x-small;
 }
+
 text.targeted {
     stroke: none;
     fill: red;
@@ -48,24 +50,36 @@ path {
 div#flow_view {
     float: left;
     width: 40%;
+    position: -webkit-sticky; /* for Safari */
+    position:sticky;
+    top:0;
+    z-index: 100;
 }
+
 div#selected_flows {
     float: right;
     width: 60%;
 }
+
 th {
     text-align: left;
     background: darkslategrey;
     color: aliceblue;
     font-size: small;
     padding: 0.5em;
+    position: -webkit-sticky; /* for Safari */
+    position:sticky;
+    top:0;
+    z-index: 100;
 }
+
 tr {
     color: dimgray;
     text-align: left;
     vertical-align: top;
     font-size: small;
 }
+
 tr.targeted {
     color: black;
     background-color: mistyrose;
