@@ -35,30 +35,29 @@ function nodeY(d) {
     return d.y * Math.sin(nodeAngleRad(d.x));
 }
 
+function changeElementTargetting(tagList) {
+    "use strict";
+    var setTargeted = tagList.length > 0;
+    var selectStr = setTargeted ? tagList.join(" ") : "targeted";
+
+    // select elements from both svg and table by class name.
+    var elementSet = document.getElementById("viewer");
+    var selectedElements = elementSet.getElementsByClassName(selectStr);
+    Array.from(selectedElements).forEach(function(element) {
+        setTargeted ?
+            element.classList.add("targeted") :
+            element.classList.remove("targeted");
+    });
+}
+
 function selectElements(tagList) {
     "use strict";
-    var svg = d3.select("#flow_view_canvas");
-    svg.selectAll(tagList.join("."))
-        .classed("targeted", true);
-
-    var flowTable = document.getElementById("flow_table");
-    var selectedFlows = flowTable.getElementsByClassName(tagList.join(" "));
-    Array.prototype.forEach.call(selectedFlows, function(flow) {
-        flow.classList.add("targeted");
-    });
+    changeElementTargetting(tagList);
 }
 
 function clearSelectedElements() {
     "use strict";
-    var svg = d3.select("#flow_view_canvas");
-    svg.selectAll(".targeted")
-        .classed("targeted", false);
-
-    var flowTable = document.getElementById("flow_table");
-    var selectedFlows = flowTable.getElementsByClassName("targeted");
-    Array.prototype.forEach.call(selectedFlows, function(flow) {
-        flow.classList.remove("targeted");
-    });
+    changeElementTargetting([]);
 }
 
 // mouse event (highlight object)
@@ -84,11 +83,11 @@ function edgeMouseEvent(thisObj) {
         // if found (several) mac-addr-tag(s)
         clearSelectedElements();
         macTags.forEach(function(macTag) {
-            selectElements(["", macTag].concat(otherTags));
+            selectElements([macTag].concat(otherTags));
         });
     } else if (otherTags.length > 0) {
         clearSelectedElements();
-        selectElements([""].concat(otherTags));
+        selectElements(otherTags);
     }
 }
 
@@ -113,7 +112,7 @@ function drawFlowData(nodes, paths) {
     // layout
     var layout = d3.cluster().size([360, radius]);
     layout(nodes);
-    var nodeSize = 0.8 * radius * Math.PI / nodes.descendants().length;
+    var nodeSize = 0.8 * radius * Math.PI / nodes.leaves().length;
 
     // draw lines
     var line = d3.radialLine()
@@ -135,7 +134,7 @@ function drawFlowData(nodes, paths) {
 
     // draw nodes
     svg.selectAll("circle")
-        .data(nodes.descendants())
+        .data(nodes.leaves())
         .enter()
         .append("circle")
         .attrs({
@@ -154,7 +153,7 @@ function drawFlowData(nodes, paths) {
 
     // draw text label
     svg.selectAll("text")
-        .data(nodes.descendants())
+        .data(nodes.leaves())
         .enter()
         .append("text")
         .attrs({

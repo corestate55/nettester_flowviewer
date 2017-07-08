@@ -2,7 +2,6 @@
     stroke-width: 4;
     stroke: red;
     opacity: 1.0;
-    background-color: mistyrose;
 }
 
 textarea {
@@ -54,15 +53,20 @@ div#selected_flows {
     float: right;
     width: 60%;
 }
-table th {
+th {
     text-align: left;
     background: darkslategrey;
     color: aliceblue;
     font-size: small;
     padding: 0.5em;
 }
-table td {
+tr {
+    color: dimgray;
     text-align: left;
     vertical-align: top;
     font-size: small;
+}
+tr.targeted {
+    color: black;
+    background-color: mistyrose;
 }

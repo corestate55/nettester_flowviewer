@@ -60,15 +60,17 @@ NXST_FLOW reply (xid=0x4):
     </p>
 </form>
 
-<div id="flow_view"></div>
-<div id="flow_table"></div>
+<div id="viewer">
+    <div id="flow_view"></div>
+    <div id="flow_table"></div>
+</div>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
 <script src="https://d3js.org/d3-scale.v1.min.js"></script>
-<script src="./flow_data.js"></script>
-<script src="./flow_table.js"></script>
-<script src="./flow_view.js"></script>
+<script src="./js/flow_data.js"></script>
+<script src="./js/flow_table.js"></script>
+<script src="./js/flow_view.js"></script>
 <script type="text/javascript">
     "use strict";
 
@@ -76,7 +78,7 @@ NXST_FLOW reply (xid=0x4):
         "use strict";
         var flowView = document.getElementById("flow_view_canvas");
         flowView.parentNode.removeChild(flowView);
-        var flowTable = document.getElementById("selected_flows");
+        var flowTable = document.getElementById("flow_table");
         flowTable.textContent = "";
         draw_view();
     }
